@@ -7,6 +7,8 @@ function update_meta_data_handler() {
     $meta_key = isset($_POST['meta_key']) ? $_POST['meta_key'] : '';
     $meta_value = isset($_POST['meta_value']) ? json_decode(stripslashes($_POST['meta_value']), true) : '';
 
+    error_log(print_r($meta_value, true));
+
     if ($post_id && $meta_key) {
         update_post_meta($post_id, $meta_key, $meta_value);
 

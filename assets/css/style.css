@@ -1,31 +1,41 @@
-.meta-box button {
-    margin: 5px;
-    padding: 5px 10px;
-    cursor: pointer;
-    color: white;
-    border: 0;
-    padding: 8px 15px;
-    border-radius: 5px;
-}
-
-#main .meta-box .update {
-    background-color: #4caf76;
-}
-
-#main .meta-box .delete {
-    background-color: #f47a36;
-}
-
 .meta-box {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-.meta-items, .meta-value {
-    display:flex;
-    flex-wrap:wrap;
+.meta-box button {
+    margin: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    color: white;
+    border: 0;
+    border-radius: 5px;
+}
+
+#main .meta-box .update,
+#main .meta-box .delete {
+    border: 1px solid #2271b1;
+}
+
+#main .meta-box .update {
+    color: #2271b1;
+}
+
+#main .meta-box .delete {
+    color: crimson;
+}
+
+.meta-items,
+.meta-wrap {
+    display: flex;
+    flex-wrap: wrap;
     flex-direction: row;
-    align-content: flex-start;
-    gap: 20px;
+    gap: 5px;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }

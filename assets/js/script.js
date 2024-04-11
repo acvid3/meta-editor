@@ -45,35 +45,38 @@ const updateMeta = async (key) => {
 
 const updateMetaDataValue = (keyPath, value) => {
     const keys = keyPath.split('.');
-
     console.log(keyPath, value);
+
     const updateRecursively = (keys, value, currentObj) => {
         const key = keys[0];
         const remainingKeys = keys.slice(1);
 
-        if (remainingKeys.length === 0) {
-            currentObj[key] = value;
-            return;
-        }
+        if (key.includes('[')) {
+            const match = key.match(/(\w+)\[(\d+)\]/);
+            const arrayKey = match[1];
+            const arrayIndex = parseInt(match[2], 10);
 
-        const nextKey = remainingKeys[0];
-        const isArrayIndex = nextKey.endsWith(']');
+            if (remainingKeys.length === 0) {
+                currentObj[arrayKey][arrayIndex] = value;
+                return;
+            }
 
-        if (isArrayIndex) {
-            const arrayKey = key;
-            const arrayIndex = parseInt(nextKey.match(/\d+/)[0], 10);
-
-            if (!Array.isArray(currentObj[arrayKey])) {
+            if (!currentObj[arrayKey]) {
                 currentObj[arrayKey] = [];
             }
 
-            if (typeof currentObj[arrayKey][arrayIndex] !== 'object') {
+            if (!currentObj[arrayKey][arrayIndex]) {
                 currentObj[arrayKey][arrayIndex] = {};
             }
 
             updateRecursively(remainingKeys, value, currentObj[arrayKey][arrayIndex]);
         } else {
-            if (typeof currentObj[key] !== 'object') {
+            if (remainingKeys.length === 0) {
+                currentObj[key] = value;
+                return;
+            }
+
+            if (!currentObj[key]) {
                 currentObj[key] = {};
             }
 
@@ -84,11 +87,24 @@ const updateMetaDataValue = (keyPath, value) => {
     updateRecursively(keys, value, metaData);
 };
 
+
 const createComponent = (key, value) => {
     const element = document.createElement('div');
-    element.classList.add('meta-items');
 
-    if (typeof value === 'string') {
+
+    
+
+    const addLabel = (textContent, parent) => {
+
+        const label = document.createElement('strong');
+        label.textContent = textContent.indexOf('.') ? textContent.split('.')[textContent.split('.').length - 1] + ':' : textContent + ':';
+        parent.appendChild(label);
+
+        element.classList.add('meta-item');
+    };
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        addLabel(key, element);
         const textarea = document.createElement('textarea');
         textarea.value = value;
         textarea.addEventListener('input', (event) => {
@@ -96,38 +112,106 @@ const createComponent = (key, value) => {
         });
         element.appendChild(textarea);
     } else if (typeof value === 'boolean') {
+        addLabel(key, element);
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.checked = value;
         checkbox.addEventListener('change', (event) => {
             updateMetaDataValue(key, event.target.checked);
         });
-        element.appendChild(checkbox);
-    } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
-        value.forEach((item, index) => {
-            const textarea = document.createElement('textarea');
-            textarea.value = item;
-            textarea.addEventListener('input', (event) => {
-                updateMetaDataValue(`${key}.${index}`, event.target.value);
-            });
-            element.appendChild(textarea);
-        });
-    } else if (Array.isArray(value) && value.every(item => typeof item === 'object')) {
 
+        element.classList.add('meta-item');
+        element.appendChild(checkbox);
+    } else if (Array.isArray(value)) {
         value.forEach((item, index) => {
-            const itemContainer = document.createElement('div');
-            itemContainer.classList.add('meta-item-container');
-            for (const [subKey, subValue] of Object.entries(item)) {
-                const compoundKey = `${key}.${index}.${subKey}`;
-                const subComponent = createComponent(compoundKey, subValue);
-                itemContainer.appendChild(subComponent);
+            const compoundKey = `${key}[${index}]`;
+            if (typeof item === 'string' || typeof item === 'boolean') {
+
+                const control = typeof item === 'string' ? document.createElement('textarea') : document.createElement('input');
+                if (typeof item === 'boolean') {
+                    control.type = 'checkbox';
+                    control.checked = item;
+                } else {
+                    control.value = item;
+                }
+                control.addEventListener('input', (event) => {
+                    updateMetaDataValue(compoundKey, event.target.value);
+                });
+
+                element.classList.add('meta-items');
+                element.appendChild(control);
+            } else if (typeof item === 'object') {
+                const subComponent = createComponent(compoundKey, item);
+                element.appendChild(subComponent);
             }
-            element.appendChild(itemContainer);
         });
+    } else if (typeof value === 'object') {
+        for (const [subKey, subValue] of Object.entries(value)) {
+            const compoundKey = `${key}.${subKey}`;
+            const subComponent = createComponent(compoundKey, subValue);
+
+            element.classList.add('meta-object');
+            element.appendChild(subComponent);
+        }
     }
+
+    if (element.classList.length === 0) {
+        element.classList.add('meta-wrap');
+    }
+    
 
     return element;
 };
+
+
+
+
+// const createComponent = (key, value) => {
+//     debugger;    
+//     const element = document.createElement('div');
+//     element.classList.add('meta-items');
+
+//     if (typeof value === 'string') {
+        
+//         const textarea = document.createElement('textarea');
+//         textarea.value = value;
+//         textarea.addEventListener('input', (event) => {
+//             updateMetaDataValue(key, event.target.value);
+//         });
+//         element.appendChild(textarea);
+//     } else if (typeof value === 'boolean') {
+//         const checkbox = document.createElement('input');
+//         checkbox.type = 'checkbox';
+//         checkbox.checked = value;
+//         checkbox.addEventListener('change', (event) => {
+//             updateMetaDataValue(key, event.target.checked);
+//         });
+//         element.appendChild(checkbox);
+//     } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+//         value.forEach((item, index) => {
+//             const textarea = document.createElement('textarea');
+//             textarea.value = item;
+//             textarea.addEventListener('input', (event) => {
+//                 updateMetaDataValue(`${key}.${index}`, event.target.value);
+//             });
+//             element.appendChild(textarea);
+//         });
+//     } else if (Array.isArray(value) && value.every(item => typeof item === 'object')) {
+
+//         value.forEach((item, index) => {
+//             const itemContainer = document.createElement('div');
+//             itemContainer.classList.add('meta-item-container');
+//             for (const [subKey, subValue] of Object.entries(item)) {
+//                 const compoundKey = `${key}.${index}.${subKey}`;
+//                 const subComponent = createComponent(compoundKey, subValue);
+//                 itemContainer.appendChild(subComponent);
+//             }
+//             element.appendChild(itemContainer);
+//         });
+//     }
+
+//     return element;
+// };
 
 const render = (metaData) => {
     const mainContainer = document.getElementById('main');
