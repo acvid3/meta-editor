@@ -91,9 +91,6 @@ const updateMetaDataValue = (keyPath, value) => {
 const createComponent = (key, value) => {
     const element = document.createElement('div');
 
-
-    
-
     const addLabel = (textContent, parent) => {
 
         const label = document.createElement('strong');
@@ -159,59 +156,8 @@ const createComponent = (key, value) => {
         element.classList.add('meta-wrap');
     }
     
-
     return element;
 };
-
-
-
-
-// const createComponent = (key, value) => {
-//     debugger;    
-//     const element = document.createElement('div');
-//     element.classList.add('meta-items');
-
-//     if (typeof value === 'string') {
-        
-//         const textarea = document.createElement('textarea');
-//         textarea.value = value;
-//         textarea.addEventListener('input', (event) => {
-//             updateMetaDataValue(key, event.target.value);
-//         });
-//         element.appendChild(textarea);
-//     } else if (typeof value === 'boolean') {
-//         const checkbox = document.createElement('input');
-//         checkbox.type = 'checkbox';
-//         checkbox.checked = value;
-//         checkbox.addEventListener('change', (event) => {
-//             updateMetaDataValue(key, event.target.checked);
-//         });
-//         element.appendChild(checkbox);
-//     } else if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
-//         value.forEach((item, index) => {
-//             const textarea = document.createElement('textarea');
-//             textarea.value = item;
-//             textarea.addEventListener('input', (event) => {
-//                 updateMetaDataValue(`${key}.${index}`, event.target.value);
-//             });
-//             element.appendChild(textarea);
-//         });
-//     } else if (Array.isArray(value) && value.every(item => typeof item === 'object')) {
-
-//         value.forEach((item, index) => {
-//             const itemContainer = document.createElement('div');
-//             itemContainer.classList.add('meta-item-container');
-//             for (const [subKey, subValue] of Object.entries(item)) {
-//                 const compoundKey = `${key}.${index}.${subKey}`;
-//                 const subComponent = createComponent(compoundKey, subValue);
-//                 itemContainer.appendChild(subComponent);
-//             }
-//             element.appendChild(itemContainer);
-//         });
-//     }
-
-//     return element;
-// };
 
 const render = (metaData) => {
     const mainContainer = document.getElementById('main');
