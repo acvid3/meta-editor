@@ -14,7 +14,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/ajax-handlers.php';
 
 function meta_editor_enqueue_scripts() {
     global $post;
-    wp_enqueue_script('meta-editor-script', plugin_dir_url(__FILE__) . 'assets/js/script.js', null, false, true);
+    wp_enqueue_script('meta-editor-script', plugin_dir_url(__FILE__) . 'assets/js/bundle.js', null, false, true);
     wp_enqueue_style('meta-editor-style', plugin_dir_url(__FILE__) . 'assets/css/style.css');
 
     $meta_data = get_post_meta($post->ID);

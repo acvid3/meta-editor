@@ -2,11 +2,13 @@
 
 add_action('add_meta_boxes', 'custom_meta_boxes');
 function custom_meta_boxes() {
+    $screen = get_current_screen();
+
     add_meta_box(
         'custom_meta_box',          
         'Custom Meta Box',          
         'meta_box',                 
-        'post',                     
+        $screen->post_type,               
         'normal',                   
         'high'                      
     );

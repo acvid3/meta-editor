@@ -1,94 +1,7 @@
-const { metaData, ajax_url, nonce, post_id } = metaEditor;
+import { updateMetaDataValue } from '../utils/utilities';
+import { deleteMeta, updateMeta } from '../api/MetaApi';
 
-const deleteMeta = async (metaKey) => {
-    try {
-        const response = await fetch(ajax_url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                action: 'delete_meta_data',
-                post_id: post_id,
-                meta_key: metaKey,
-                security: nonce
-            })
-        });
-        
-        console.log('Delete Response:', response.status);
-    } catch (error) {
-        console.error('Delete Error:', error);
-    }
-};
-
-const updateMeta = async (key) => {
-    try {
-        const metaValue = metaData[key];
-
-        const response = await fetch(ajax_url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                action: 'update_meta_data',
-                post_id: post_id,
-                meta_key: key,
-                meta_value: JSON.stringify(metaValue),
-                security: nonce
-            })
-        });
-    
-        console.log('Update Response:', response);
-    } catch (error) {
-        console.error('Update Error:', error);
-    }
-};
-
-const updateMetaDataValue = (keyPath, value) => {
-    const keys = keyPath.split('.');
-    console.log(keyPath, value);
-
-    const updateRecursively = (keys, value, currentObj) => {
-        const key = keys[0];
-        const remainingKeys = keys.slice(1);
-
-        if (key.includes('[')) {
-            const match = key.match(/(\w+)\[(\d+)\]/);
-            const arrayKey = match[1];
-            const arrayIndex = parseInt(match[2], 10);
-
-            if (remainingKeys.length === 0) {
-                currentObj[arrayKey][arrayIndex] = value;
-                return;
-            }
-
-            if (!currentObj[arrayKey]) {
-                currentObj[arrayKey] = [];
-            }
-
-            if (!currentObj[arrayKey][arrayIndex]) {
-                currentObj[arrayKey][arrayIndex] = {};
-            }
-
-            updateRecursively(remainingKeys, value, currentObj[arrayKey][arrayIndex]);
-        } else {
-            if (remainingKeys.length === 0) {
-                currentObj[key] = value;
-                return;
-            }
-
-            if (!currentObj[key]) {
-                currentObj[key] = {};
-            }
-
-            updateRecursively(remainingKeys, value, currentObj[key]);
-        }
-    };
-
-    updateRecursively(keys, value, metaData);
-};
-
-
-const createComponent = (key, value) => {
+export const createComponent = (key, value) => {
     const element = document.createElement('div');
 
     const addLabel = (textContent, parent) => {
@@ -120,8 +33,9 @@ const createComponent = (key, value) => {
         element.classList.add('meta-item');
         element.appendChild(checkbox);
     } else if (Array.isArray(value)) {
-        
+       
         value.forEach((item, index) => {
+
             const compoundKey = `${key}[${index}]`;
             if (typeof item === 'string' || typeof item === 'boolean') {
 
@@ -160,7 +74,7 @@ const createComponent = (key, value) => {
     return element;
 };
 
-const render = (metaData) => {
+export const render = (metaData) => {
     const mainContainer = document.getElementById('main');
 
     for (const [key, value] of Object.entries(metaData)) {
@@ -189,7 +103,3 @@ const render = (metaData) => {
         mainContainer.appendChild(metaBox);
     }
 };
-
-document.addEventListener('DOMContentLoaded', () => {
-    render(metaData);
-});

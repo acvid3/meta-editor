@@ -1,7 +1,17 @@
+#main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .meta-box {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    padding: 5px;
+    border: 1px solid #2271b1;
+    background: #135e96;
+    border-radius: 5px;
 }
 
 .meta-box button {
@@ -37,5 +47,22 @@
 .meta-item {
     display: flex;
     flex-direction: column;
+    padding: 5px;
+    border-radius: 5px;
     gap: 5px;
+    background: #2271b1;
+}
+
+.meta-object {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.meta-box .meta-object .meta-item strong {
+    padding: 5px 0;
+    border-radius: 5px;
+    text-align: center;
+    color: #fff;
+    background: #2271b1;
 }
