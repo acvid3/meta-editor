@@ -13,6 +13,22 @@ export const createComponent = (key, value) => {
         element.classList.add('meta-item');
     };
 
+    const createSubcomponentControls = (onDelete, onDuplicate) => {
+        const wrapper = document.createElement('div');
+        const duplicateButton = document.createElement('button');
+        const deleteButton = document.createElement('button');
+
+        duplicateButton.textContent = 'Duplicate';
+        deleteButton.textContent = 'Delete';
+
+        deleteButton.addEventListener('click', onDelete);
+        duplicateButton.addEventListener('click', onDuplicate)
+
+        wrapper.appendChild(duplicateButton);
+        wrapper.appendChild(deleteButton);
+        return wrapper;
+    }
+
     if (typeof value === 'string' || typeof value === 'number') {
         addLabel(key, element);
         const textarea = document.createElement('textarea');
@@ -53,8 +69,27 @@ export const createComponent = (key, value) => {
                 element.classList.add('meta-items');
                 element.appendChild(control);
             } else if (typeof item === 'object') {
-                const subComponent = createComponent(compoundKey, item);
-                element.appendChild(subComponent);
+                const handleSubcomponent = (subKey, subValue) => {
+                    const subComponentWrapper = document.createElement('div');
+                    const subComponentControls = createSubcomponentControls(
+                        () => {
+                            subComponentWrapper.remove();
+                            deleteMeta(compoundKey)
+                        },
+                        () => {
+                            value.push(subValue);
+                            handleSubcomponent(`${key}[${value.length - 1}]`, subValue)
+                        }
+                    );
+                    const subComponent = createComponent(subKey, subValue);
+
+                    subComponentWrapper.appendChild(subComponentControls)
+                    subComponentWrapper.appendChild(subComponent)
+                    element.appendChild(subComponentWrapper);
+                }
+
+                handleSubcomponent(compoundKey, item);
+
             }
         });
     } else if (typeof value === 'object') {
