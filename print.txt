@@ -1,0 +1,435 @@
+path: ./includes/metaboxes.php
+file contents:
+<?php
+
+add_action('add_meta_boxes', 'custom_meta_boxes');
+function custom_meta_boxes() {
+    $screen = get_current_screen();
+
+    add_meta_box(
+        'custom_meta_box',          
+        'Custom Meta Box',          
+        'meta_box',                 
+        $screen->post_type,               
+        'normal',                   
+        'high'                      
+    );
+}
+
+function meta_box() {
+    echo '<div id="main"></div>';
+    wp_nonce_field('meta_editor_action', 'meta_editor_nonce');
+}path: ./includes/ajax-handlers.php
+file contents:
+<?php
+add_action('wp_ajax_update_meta_data', 'update_meta_data_handler');
+function update_meta_data_handler() {
+    check_ajax_referer('meta_editor_nonce', 'security');
+
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+    $meta_key = isset($_POST['meta_key']) ? $_POST['meta_key'] : '';
+    $meta_value = isset($_POST['meta_value']) ? json_decode(stripslashes($_POST['meta_value']), true) : '';
+
+    error_log(print_r($meta_value, true));
+
+    if ($post_id && $meta_key) {
+        update_post_meta($post_id, $meta_key, $meta_value);
+
+        wp_send_json_success(['message' => array('success' => true)]);
+    } else {
+        wp_send_json_error(['message' => array('success' => false)]);
+    }
+
+    wp_die();
+}
+
+add_action('wp_ajax_delete_meta_data', 'delete_meta_data_handler');
+function delete_meta_data_handler() {
+    check_ajax_referer('meta_editor_nonce', 'security');
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+    $meta_key = isset($_POST['meta_key']) ? $_POST['meta_key'] : '';
+
+    if ($post_id && $meta_key) {
+        delete_post_meta($post_id, $meta_key);
+
+        wp_send_json_success(['message' => array('success' => true)]);
+    } else {
+        wp_send_json_error(['message' => array('success' => false)]);
+    }
+
+    wp_die();
+}
+path: ./webpack.config.js
+file contents:
+const path = require('path');
+
+module.exports = {
+    entry: './src/index.js',
+    output: {
+        path: path.resolve(__dirname, 'assets/js'),
+        filename: 'bundle.js'
+    },
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env']
+                    }
+                }
+            }
+        ]
+    },
+    mode: 'development',
+    devtool: "source-map"
+};
+path: ./tmp.json
+file contents:
+path: ./meta-editor.php
+file contents:
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+/**
+ * Plugin Name: MetaEditor
+ * Description: Plugin for editing and removing post metadata in WordPress.
+ * Version: 1.0
+ * Author: Andrew Chekh
+ */
+
+require_once plugin_dir_path(__FILE__) . 'includes/metaboxes.php';
+require_once plugin_dir_path(__FILE__) . 'includes/ajax-handlers.php';
+
+function meta_editor_enqueue_scripts() {
+    global $post;
+    wp_enqueue_script('meta-editor-script', plugin_dir_url(__FILE__) . 'assets/js/bundle.js', null, false, true);
+    wp_enqueue_style('meta-editor-style', plugin_dir_url(__FILE__) . 'assets/css/style.css');
+
+    $meta_data = get_post_meta($post->ID);
+
+    $meta_data_array = [];
+    foreach ($meta_data as $key => $value) {
+        $meta_data_array[$key] = maybe_unserialize($value[0]);
+    }
+
+    $script_data = [
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'post_id'  => $post->ID,
+        'nonce'    => wp_create_nonce('meta_editor_nonce'),
+        'metaData' => $meta_data_array
+    ];
+
+    wp_localize_script('meta-editor-script', 'metaEditor', $script_data);
+}
+add_action('admin_enqueue_scripts', 'meta_editor_enqueue_scripts');
+
+
+
+path: ./assets/css/style.css
+file contents:
+#main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.meta-box {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 5px;
+    border: 1px solid #2271b1;
+    background: #135e96;
+    border-radius: 5px;
+}
+
+.meta-box button {
+    margin: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    color: white;
+    border: 0;
+    border-radius: 5px;
+}
+
+#main .meta-box .update,
+#main .meta-box .delete {
+    border: 1px solid #2271b1;
+}
+
+#main .meta-box .update {
+    color: #2271b1;
+}
+
+#main .meta-box .delete {
+    color: crimson;
+}
+
+.meta-items,
+.meta-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    gap: 5px;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    padding: 5px;
+    border-radius: 5px;
+    gap: 5px;
+    background: #2271b1;
+}
+
+.meta-object {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.meta-box .meta-object .meta-item strong {
+    padding: 5px 0;
+    border-radius: 5px;
+    text-align: center;
+    color: #fff;
+    background: #2271b1;
+}path: ./src/index.js
+file contents:
+import { render } from './components/MetaComponent';
+
+document.addEventListener('DOMContentLoaded', () => {
+    render(metaEditor.metaData, 'main');
+});
+path: ./src/utils/utilities.js
+file contents:
+export const updateMetaDataValue = (keyPath, value) => {
+    const keys = keyPath.split('.');
+    console.log(keyPath, value);
+
+    const updateRecursively = (keys, value, currentObj) => {
+        const key = keys[0];
+        const remainingKeys = keys.slice(1);
+
+        if (key.includes('[')) {
+            const match = key.match(/(\w+)\[(\d+)\]/);
+            const arrayKey = match[1];
+            const arrayIndex = parseInt(match[2], 10);
+
+            if (remainingKeys.length === 0) {
+                currentObj[arrayKey][arrayIndex] = value;
+                return;
+            }
+
+            if (!currentObj[arrayKey]) {
+                currentObj[arrayKey] = [];
+            }
+
+            if (!currentObj[arrayKey][arrayIndex]) {
+                currentObj[arrayKey][arrayIndex] = {};
+            }
+
+            updateRecursively(remainingKeys, value, currentObj[arrayKey][arrayIndex]);
+        } else {
+            if (remainingKeys.length === 0) {
+                currentObj[key] = value;
+                return;
+            }
+
+            if (!currentObj[key]) {
+                currentObj[key] = {};
+            }
+
+            updateRecursively(remainingKeys, value, currentObj[key]);
+        }
+    };
+
+    updateRecursively(keys, value, metaEditor.metaData);
+};
+path: ./src/components/MetaComponent.js
+file contents:
+import { updateMeta, deleteMeta } from '../api/MetaApi';
+import { updateMetaDataValue } from '../utils/utilities';
+
+function createElement(type, props = {}, children = []) {
+    console.log('createElement called with', { type, props, children });
+    const element = document.createElement(type);
+    Object.keys(props).forEach(key => {
+        if (key.startsWith('on') && typeof props[key] === 'function') {
+            element.addEventListener(key.substring(2).toLowerCase(), props[key]);
+        } else {
+            element[key] = props[key];
+        }
+    });
+
+
+    children.forEach(child => {
+        const nodeToAppend = child instanceof Node ? child : document.createTextNode(String(child));
+
+        console.log('Appending child:', nodeToAppend);
+        try {
+            element.appendChild(nodeToAppend);
+        } catch (error) {
+            console.error('Error appending child:', nodeToAppend, error);
+        }
+    });
+
+
+    
+    console.log('createElement returning', element);
+    return element;
+}
+
+function createLabel(textContent) {
+    console.log('createLabel called with', textContent);
+    const label = createElement('strong', {}, []);
+    const textNode = document.createTextNode(textContent);
+    label.appendChild(textNode);
+    console.log('createLabel returning', label);
+    return label;
+}
+
+function createControlButtons(metaKey, onDelete, onUpdate) {
+    console.log('createControlButtons called with', { metaKey, onDelete, onUpdate });
+    const isMetaArrayKey = metaKey.match(/\[\d+\]/);
+    const buttons = [];
+
+    buttons.push(createElement('button', {
+        textContent: 'Update',
+        onclick: () => onUpdate(metaKey)
+    }));
+
+    if (isMetaArrayKey) {
+        buttons.unshift(createElement('button', {
+            textContent: 'Delete Element',
+            onclick: () => onDelete(metaKey, true)
+        }));
+    } else {
+        buttons.unshift(createElement('button', {
+            textContent: 'Delete Meta',
+            onclick: () => onDelete(metaKey, false)
+        }));
+    }
+
+    const controlButtons = createElement('div', { className: 'control-buttons' }, buttons);
+    console.log('createControlButtons returning', controlButtons);
+    return controlButtons;
+}
+
+function createComponent(key, value, onDelete, onUpdate) {
+    console.log('createComponent called with', { key, value, onDelete, onUpdate });
+    const element = createElement('div', { className: 'meta-item' });
+    element.appendChild(createLabel(key));
+
+
+    let inputElement;
+    if (typeof value === 'string' || typeof value === 'number') {
+        inputElement = createElement('textarea', {
+            value: value,
+            oninput: (event) => updateMetaDataValue(key, event.target.value)
+        });
+    } else if (typeof value === 'boolean') {
+        inputElement = createElement('input', {
+            type: 'checkbox',
+            checked: value,
+            onchange: (event) => updateMetaDataValue(key, event.target.checked)
+        });
+    } else if (typeof value === 'object' && value !== null) {
+        Object.entries(value).forEach(([subKey, value]) => {
+            inputElement = createComponent(key + '.' + subKey, value);
+        });
+    };
+    
+
+    element.appendChild(inputElement);
+    element.appendChild(createControlButtons(key, handleDelete, updateMeta));
+
+    console.log('createComponent returning', element);
+    return element;
+}
+
+function handleDelete(metaKey, isElement) {
+    console.log('handleDelete called with', { metaKey, isElement });
+    if (isElement) {
+        const pathParts = metaKey.split('.');
+        const metaKeyRoot = pathParts.shift();
+        deleteElementAtPath(metaEditor.metaData, metaKey);
+        updateMeta(metaKeyRoot);
+    } else {
+        deleteMeta(metaKey);
+    }
+    console.log('handleDelete executed');
+}
+
+function deleteElementAtPath(data, path) {
+    console.log('deleteElementAtPath called with', { data, path });
+    const parts = path.split('.');
+    const indexToRemove = parseInt(parts.pop().match(/\d+/)[0], 10);
+    let arr = parts.reduce((acc, cur) => acc[cur], data);
+    arr.splice(indexToRemove, 1);
+    console.log('deleteElementAtPath executed');
+}
+
+export const render = (metaData, containerId) => {
+    console.log('render called with', { metaData, containerId });
+    const mainContainer = document.getElementById(containerId);
+    mainContainer.innerHTML = '';
+
+    Object.entries(metaData).forEach(([key, value]) => {
+        console.log('rendering', { key, value });
+        const metaBox = createElement('div', { className: 'meta-box' });
+        const component = createComponent(key, value, handleDelete, updateMeta);
+        metaBox.appendChild(component);
+        mainContainer.appendChild(metaBox);
+    });
+    console.log('render executed');
+};
+
+path: ./src/api/MetaApi.js
+file contents:
+export const deleteMeta = async (metaKey) => {
+    try {
+        const response = await fetch(metaEditor.ajax_url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'delete_meta_data',
+                post_id: metaEditor.post_id,
+                meta_key: metaKey,
+                security: metaEditor.nonce
+            })
+        });
+        
+        console.log('Delete Response:', response.status);
+    } catch (error) {
+        console.error('Delete Error:', error);
+    }
+};
+
+export const updateMeta = async (key) => {
+    try {
+        const metaValue = metaEditor.metaData[key];
+
+        const response = await fetch(metaEditor.ajax_url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'update_meta_data',
+                post_id: metaEditor.post_id,
+                meta_key: key,
+                meta_value: JSON.stringify(metaValue),
+                security: metaEditor.nonce
+            })
+        });
+    
+        console.log('Update Response:', response);
+    } catch (error) {
+        console.error('Update Error:', error);
+    }
+};

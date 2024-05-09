@@ -20,8 +20,6 @@ export const deleteMeta = async (metaKey) => {
 
 export const updateMeta = async (key) => {
     try {
-        const metaValue = metaEditor.metaData[key];
-
         const response = await fetch(metaEditor.ajax_url, {
             method: 'POST',
             credentials: 'same-origin',
@@ -30,7 +28,7 @@ export const updateMeta = async (key) => {
                 action: 'update_meta_data',
                 post_id: metaEditor.post_id,
                 meta_key: key,
-                meta_value: JSON.stringify(metaValue),
+                meta_value: JSON.stringify(metaEditor.metaData[key]),
                 security: metaEditor.nonce
             })
         });

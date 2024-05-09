@@ -20,5 +20,6 @@ module.exports = {
             }
         ]
     },
-    mode: 'development'
+    mode: 'development',
+    devtool: "source-map"
 };

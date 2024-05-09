@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack --mode production",
-    "dev": "webpack --mode development --watch"
+    "dev": "webpack --mode development --watch",
+    "tree": "find . -type f ! -path '*/.*' ! -path '*/node_modules/*' ! -name 'README.md' ! -name 'package-lock.json' ! -name 'package.json' ! -name 'print.txt' -print0 | xargs -0 -I {} sh -c 'echo \"path: {}\"; echo \"file contents:\"; cat {}' > print.txt"
 },
   "keywords": [],
   "author": "",

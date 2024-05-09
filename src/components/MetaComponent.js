@@ -1,140 +1,191 @@
-import { updateMetaDataValue } from '../utils/utilities';
-import { deleteMeta, updateMeta } from '../api/MetaApi';
+import { updateMeta, deleteMeta } from '../api/MetaApi';
+import { updateMetaDataValue, getItemsFromPath } from '../utils/utilities';
 
-export const createComponent = (key, value) => {
-    const element = document.createElement('div');
 
-    const addLabel = (textContent, parent) => {
 
-        const label = document.createElement('strong');
-        label.textContent = textContent.indexOf('.') ? textContent.split('.')[textContent.split('.').length - 1] + ':' : textContent + ':';
-        parent.appendChild(label);
+const createElement = (type, props = {}, children = []) => {
+    const element = document.createElement(type);
+    Object.keys(props).forEach(key => {
+        if (key.startsWith('on') && typeof props[key] === 'function') {
+            element.addEventListener(key.substring(2).toLowerCase(), props[key]);
+        } else {
+            element[key] = props[key];
+        }
+    });
 
-        element.classList.add('meta-item');
+    children.forEach(child => {
+        const nodeToAppend = child instanceof Node ? child : document.createTextNode(String(child));
+
+        try {
+            element.appendChild(nodeToAppend);
+        } catch (error) {
+            console.error('Error appending child:', nodeToAppend, error);
+        }
+    });
+
+    return element;
+}
+
+const createLabel = (textContent) => {
+    const label = createElement('strong', {}, []);
+    const textNode = document.createTextNode(textContent);
+    label.appendChild(textNode);
+    return label;
+}
+
+// function createControlButtons(pathKey, value, isArrayControl, onDelete, onUpdate) {
+//     console.log('createControlButtons called with', { pathKey, value });
+//     const elementKey = pathKey.split('.').slice(-1)[0];
+//     // const isMetaArrayKey = metaKey.match(/\[\d+\]/);
+//     const buttons = [];
+//     // console.log({elementKey});
+
+//     if (isArrayControl) {
+//         buttons.unshift(createElement('button', {
+//             textContent: 'Delete Element',
+//             onclick: () => onDelete(pathKey, true),
+//             className: 'delete'
+//         }));
+//     } else if (!elementKey && !isArrayControl) {
+//         buttons.push(createElement('button', {
+//             textContent: 'Update',
+//             onclick: () => onUpdate(pathKey),
+//             className: 'update'
+//         }));
+
+//         buttons.unshift(createElement('button', {
+//             textContent: 'Delete Meta',
+//             onclick: () => onDelete(pathKey, false),
+//             className: 'delete'
+//         }));
+//     }
+
+//     const controlButtons = createElement('div', { className: 'control-buttons' }, buttons);
+//     // console.log('createControlButtons returning', controlButtons);
+//     return controlButtons;
+// }
+
+const createControlButtons = (pathKey, value) => {
+    const pathParts = pathKey.split('.');
+    const itemIndex = parseInt(pathParts[pathParts.length - 2], 10);
+
+    const deleteButton = createElement('button', {
+        innerText: 'Remove item',
+        className: 'delete',
+        onclick: (event) => {
+            event.preventDefault();
+
+            const result = getItemsFromPath(pathParts);
+
+            const indexToDelete = result.findIndex(subValue => subValue === value);
+            result.splice(indexToDelete, 1);
+            updateMeta(pathKey.split('.')[0]);
+        }
+    });
+
+    const duplicateButton = createElement('button', {
+        innerText: 'Duplicate item',
+        className: 'update',
+        onclick: (event) => {
+            event.preventDefault();
+            console.log(`Duplicating item at index ${itemIndex}`);
+            if (!isNaN(itemIndex) && metaEditor.metaData.length > itemIndex) {
+                const itemToDuplicate = metaEditor.metaData[itemIndex];
+                metaEditor.metaData.splice(itemIndex, 0, { ...itemToDuplicate });
+            }
+            console.log('Updated metaData:', metaEditor.metaData);
+        }
+    });
+
+    const controlButtons = createElement('div', { className: 'control-buttons' }, [deleteButton, duplicateButton]);
+    return controlButtons;
+}
+
+const handleCreateDuplicateItem = (key, value) => {
+    console.log(key, value);
+}
+
+const handleDeleteItem = (key, value) => {
+    console.log(key, value);
+}
+
+const createComponent = (key, value, isControllButtons = false, onDelete, onUpdate) => {
+    const className = typeof value === 'object' && Array.isArray(value) ? 'meta-items' : 'meta-box';
+    const element = createElement('div', { className });
+
+    let inputElement;
+    if (typeof value === 'string' || typeof value === 'number') {
+        inputElement = createElement('textarea', {
+            value: value,
+            oninput: (event) => updateMetaDataValue(key, event.target.value),
+            className: 'meta-box-' + typeof value
+        });
+
+        if (isControllButtons) {
+            inputElement.appendChild(createControlButtons(key, value, true, handleDelete, updateMeta));
+        }
+
+        element.appendChild(createLabel(key));
+        element.appendChild(inputElement);
+        
+    } else if (typeof value === 'boolean') {
+        inputElement = createElement('input', {
+            type: 'checkbox',
+            checked: value,
+            onchange: (event) => updateMetaDataValue(key, event.target.checked),
+            className: 'meta-box-' + typeof value
+        });
+
+        if (isControllButtons) {
+            inputElement.appendChild(createControlButtons(key, value, true, handleDeleteItem, handleCreateDuplicateItem));
+        }
+
+        element.appendChild(createLabel(key));
+        element.appendChild(inputElement);
+       
+    } else if (typeof value === 'object' && value !== null) {
+        
+        Object.entries(value).forEach(([subKey, subValue]) => {
+            inputElement = createComponent(key + '.' + subKey, subValue, Array.isArray(subValue));
+
+            if (isControllButtons) {
+                inputElement.appendChild(createControlButtons(key, subValue, true, handleDelete, updateMeta));
+            }
+
+            element.appendChild(inputElement);
+        });
     };
 
-    const createSubcomponentControls = (onDelete, onDuplicate) => {
-        const wrapper = document.createElement('div');
-        const duplicateButton = document.createElement('button');
-        const deleteButton = document.createElement('button');
-
-        duplicateButton.textContent = 'Duplicate';
-        deleteButton.textContent = 'Delete';
-
-        deleteButton.addEventListener('click', onDelete);
-        duplicateButton.addEventListener('click', onDuplicate)
-
-        wrapper.appendChild(duplicateButton);
-        wrapper.appendChild(deleteButton);
-        return wrapper;
-    }
-
-    if (typeof value === 'string' || typeof value === 'number') {
-        addLabel(key, element);
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.addEventListener('input', (event) => {
-            updateMetaDataValue(key, event.target.value);
-        });
-        element.appendChild(textarea);
-    } else if (typeof value === 'boolean') {
-        addLabel(key, element);
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.checked = value;
-        checkbox.addEventListener('change', (event) => {
-            updateMetaDataValue(key, event.target.checked);
-        });
-
-        element.classList.add('meta-item');
-        element.appendChild(checkbox);
-    } else if (Array.isArray(value)) {
-       
-        value.forEach((item, index) => {
-
-            const compoundKey = `${key}[${index}]`;
-            if (typeof item === 'string' || typeof item === 'boolean') {
-
-                const control = typeof item === 'string' ? document.createElement('textarea') : document.createElement('input');
-                if (typeof item === 'boolean') {
-                    control.type = 'checkbox';
-                    control.checked = item;
-                } else {
-                    control.value = item;
-                }
-                control.addEventListener('input', (event) => {
-                    updateMetaDataValue(compoundKey, event.target.value);
-                });
-
-                element.classList.add('meta-items');
-                element.appendChild(control);
-            } else if (typeof item === 'object') {
-                const handleSubcomponent = (subKey, subValue) => {
-                    const subComponentWrapper = document.createElement('div');
-                    const subComponentControls = createSubcomponentControls(
-                        () => {
-                            subComponentWrapper.remove();
-                            deleteMeta(compoundKey)
-                        },
-                        () => {
-                            value.push(subValue);
-                            handleSubcomponent(`${key}[${value.length - 1}]`, subValue)
-                        }
-                    );
-                    const subComponent = createComponent(subKey, subValue);
-
-                    subComponentWrapper.appendChild(subComponentControls)
-                    subComponentWrapper.appendChild(subComponent)
-                    element.appendChild(subComponentWrapper);
-                }
-
-                handleSubcomponent(compoundKey, item);
-
-            }
-        });
-    } else if (typeof value === 'object') {
-        for (const [subKey, subValue] of Object.entries(value)) {
-            const compoundKey = `${key}.${subKey}`;
-            const subComponent = createComponent(compoundKey, subValue);
-
-            element.classList.add('meta-object');
-            element.appendChild(subComponent);
-        }
-    }
-
-    if (element.classList.length === 0) {
-        element.classList.add('meta-wrap');
-    }
-    
     return element;
-};
+}
 
-export const render = (metaData) => {
-    const mainContainer = document.getElementById('main');
+const handleDelete = (metaKey, isElement) => {
+    if (isElement) {
+        const pathParts = metaKey.split('.');
+        const metaKeyRoot = pathParts.shift();
+        deleteElementAtPath(metaEditor.metaData, metaKey);
+        updateMeta(metaKeyRoot);
+    } else {
+        deleteMeta(metaKey);
+    }
+}
 
-    for (const [key, value] of Object.entries(metaData)) {
-        const metaBox = document.createElement('div');
-        metaBox.classList.add('meta-box');
+const deleteElementAtPath = (data, path) => {
+    const parts = path.split('.');
+    const indexToRemove = parseInt(parts.pop().match(/\d+/)[0], 10);
+    let arr = parts.reduce((acc, cur) => acc[cur], data);
+    arr.splice(indexToRemove, 1);
+}
 
+export const render = (metaData, containerId) => {
+    const mainContainer = document.getElementById(containerId);
+    mainContainer.innerHTML = '';
+
+    Object.entries(metaData).forEach(([key, value]) => {
+        const metaBox = createElement('div', { className: 'meta-box' });
         const component = createComponent(key, value);
         metaBox.appendChild(component);
-
-        const controlButtons = document.createElement('div');
-        controlButtons.classList.add('control-buttons');
-
-        const deleteMetaData = document.createElement('button');
-        deleteMetaData.textContent = 'Delete';
-        deleteMetaData.classList.add('delete');
-        deleteMetaData.addEventListener('click', () => deleteMeta(key));
-        controlButtons.appendChild(deleteMetaData);
-
-        const updateMetaData = document.createElement('button');
-        updateMetaData.textContent = 'Update';
-        updateMetaData.classList.add('update');
-        updateMetaData.addEventListener('click', () => updateMeta(key));
-        controlButtons.appendChild(updateMetaData);
-
-        metaBox.appendChild(controlButtons);
         mainContainer.appendChild(metaBox);
-    }
+    });
 };
+

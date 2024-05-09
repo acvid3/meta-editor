@@ -6,38 +6,22 @@ export const updateMetaDataValue = (keyPath, value) => {
         const key = keys[0];
         const remainingKeys = keys.slice(1);
 
-        if (key.includes('[')) {
-            const match = key.match(/(\w+)\[(\d+)\]/);
-            const arrayKey = match[1];
-            const arrayIndex = parseInt(match[2], 10);
-
-            if (remainingKeys.length === 0) {
-                currentObj[arrayKey][arrayIndex] = value;
-                return;
-            }
-
-            if (!currentObj[arrayKey]) {
-                currentObj[arrayKey] = [];
-            }
-
-            if (!currentObj[arrayKey][arrayIndex]) {
-                currentObj[arrayKey][arrayIndex] = {};
-            }
-
-            updateRecursively(remainingKeys, value, currentObj[arrayKey][arrayIndex]);
-        } else {
-            if (remainingKeys.length === 0) {
-                currentObj[key] = value;
-                return;
-            }
-
-            if (!currentObj[key]) {
-                currentObj[key] = {};
-            }
-
+        if (typeof value === 'object' && value !== null) {
+            
             updateRecursively(remainingKeys, value, currentObj[key]);
+        } else {
+            currentObj[key] = value;
         }
     };
 
     updateRecursively(keys, value, metaEditor.metaData);
 };
+
+export const getItemsFromPath = ( pathParts ) => {
+    let result = metaEditor.metaData;
+    for (const key of pathParts) {
+        result = result[key];
+    }
+
+    return result;
+}
