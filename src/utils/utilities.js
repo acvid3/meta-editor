@@ -1,20 +1,17 @@
+const setItemsAtPath = (pathParts, value) => {
+    let obj = metaEditor.metaData;
+    for (let i = 0; i < pathParts.length - 1; i++) {
+        obj = obj[pathParts[i]];
+    }
+    obj[pathParts[pathParts.length - 1]] = value;
+}
+
 export const updateMetaDataValue = (keyPath, value) => {
     const keys = keyPath.split('.');
-    console.log(keyPath, value);
+    
+    setItemsAtPath(keys, value);
 
-    const updateRecursively = (keys, value, currentObj) => {
-        const key = keys[0];
-        const remainingKeys = keys.slice(1);
-
-        if (typeof value === 'object' && value !== null) {
-            
-            updateRecursively(remainingKeys, value, currentObj[key]);
-        } else {
-            currentObj[key] = value;
-        }
-    };
-
-    updateRecursively(keys, value, metaEditor.metaData);
+    console.log(metaEditor.metaData);
 };
 
 export const getItemsFromPath = ( pathParts ) => {

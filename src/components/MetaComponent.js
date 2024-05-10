@@ -67,14 +67,12 @@ const createLabel = (textContent) => {
 
 const createControlButtons = (pathKey, value) => {
     const pathParts = pathKey.split('.');
-    const itemIndex = parseInt(pathParts[pathParts.length - 2], 10);
 
     const deleteButton = createElement('button', {
         innerText: 'Remove item',
         className: 'delete',
         onclick: (event) => {
             event.preventDefault();
-
             const result = getItemsFromPath(pathParts);
 
             const indexToDelete = result.findIndex(subValue => subValue === value);
@@ -88,12 +86,10 @@ const createControlButtons = (pathKey, value) => {
         className: 'update',
         onclick: (event) => {
             event.preventDefault();
-            console.log(`Duplicating item at index ${itemIndex}`);
-            if (!isNaN(itemIndex) && metaEditor.metaData.length > itemIndex) {
-                const itemToDuplicate = metaEditor.metaData[itemIndex];
-                metaEditor.metaData.splice(itemIndex, 0, { ...itemToDuplicate });
-            }
-            console.log('Updated metaData:', metaEditor.metaData);
+            const result = getItemsFromPath(pathParts);
+            const indexToDelete = result.findIndex(subValue => subValue === value);
+            result.splice(indexToDelete, 0, value);
+            updateMeta(pathKey.split('.')[0]);
         }
     });
 
@@ -184,6 +180,28 @@ export const render = (metaData, containerId) => {
     Object.entries(metaData).forEach(([key, value]) => {
         const metaBox = createElement('div', { className: 'meta-box' });
         const component = createComponent(key, value);
+
+        const control = createElement('div', { className: 'meta-control' });
+        const deleteMetaButton = createElement('button', { 
+            innerText: 'Remove meta',
+            className: 'delete',
+            onclick: (event) => {
+                event.preventDefault();
+                deleteMeta(key);
+            } 
+        });
+        const updateMetaButton = createElement('button', { 
+            innerText: 'Update meta',
+            className: 'update',
+            onclick: (event) => {
+                event.preventDefault();
+                updateMeta(key);
+            } 
+        });
+        control.appendChild(deleteMetaButton);
+        control.appendChild(updateMetaButton);
+
+        metaBox.appendChild(control);
         metaBox.appendChild(component);
         mainContainer.appendChild(metaBox);
     });
