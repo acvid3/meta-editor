@@ -33,38 +33,6 @@ const createLabel = (textContent) => {
     return label;
 }
 
-// function createControlButtons(pathKey, value, isArrayControl, onDelete, onUpdate) {
-//     console.log('createControlButtons called with', { pathKey, value });
-//     const elementKey = pathKey.split('.').slice(-1)[0];
-//     // const isMetaArrayKey = metaKey.match(/\[\d+\]/);
-//     const buttons = [];
-//     // console.log({elementKey});
-
-//     if (isArrayControl) {
-//         buttons.unshift(createElement('button', {
-//             textContent: 'Delete Element',
-//             onclick: () => onDelete(pathKey, true),
-//             className: 'delete'
-//         }));
-//     } else if (!elementKey && !isArrayControl) {
-//         buttons.push(createElement('button', {
-//             textContent: 'Update',
-//             onclick: () => onUpdate(pathKey),
-//             className: 'update'
-//         }));
-
-//         buttons.unshift(createElement('button', {
-//             textContent: 'Delete Meta',
-//             onclick: () => onDelete(pathKey, false),
-//             className: 'delete'
-//         }));
-//     }
-
-//     const controlButtons = createElement('div', { className: 'control-buttons' }, buttons);
-//     // console.log('createControlButtons returning', controlButtons);
-//     return controlButtons;
-// }
-
 const createControlButtons = (pathKey, value) => {
     const pathParts = pathKey.split('.');
 
